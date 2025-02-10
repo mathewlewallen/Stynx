@@ -1,55 +1,45 @@
-class VarDeclNode:
-    def __init__(self, var_name, type_annotation=None):
-        self.var_name = var_name
-        self.type_annotation = type_annotation
-    def __repr__(self):
-        if self.type_annotation:
-            return f"VarDecl({self.var_name}: {self.type_annotation})"
-        return f"VarDecl({self.var_name})"
+class ASTNode:
+    pass
 
-class TensorDeclNode:
-    def __init__(self, var_name, dims):
-        self.var_name = var_name
-        self.dims = dims  
-    def __repr__(self):
-        return f"TensorDecl({self.var_name}, dims={self.dims})"
-
-class AssignNode:
-    def __init__(self, var_name, expr):
-        self.var_name = var_name
-        self.expr = expr
-    def __repr__(self):
-        return f"Assign({self.var_name} = {self.expr})"
-
-class BinOpNode:
-    def __init__(self, left, op, right):
-        self.left = left
-        self.op = op  
-        self.right = right
-    def __repr__(self):
-        return f"BinOp({self.left} {self.op} {self.right})"
-
-class PrintNode:
-    def __init__(self, expr):
-        self.expr = expr
-    def __repr__(self):
-        return f"Print({self.expr})"
-
-class GradNode:
-    def __init__(self, expr, wrt):
-        self.expr = expr
-        self.wrt = wrt
-    def __repr__(self):
-        return f"Grad({self.expr}, wrt={self.wrt})"
-
-class NumberNode:
+class Number(ASTNode):
     def __init__(self, value):
-        self.value = value
+        self.value = float(value)  
     def __repr__(self):
         return f"Number({self.value})"
 
-class VarRefNode:
-    def __init__(self, var_name):
-        self.var_name = var_name
+class BinOp(ASTNode):
+    def __init__(self, left, op, right):
+        self.left = left    
+        self.op = op        
+        self.right = right  
     def __repr__(self):
-        return f"VarRef({self.var_name})"
+        return f"BinOp({self.left}, '{self.op}', {self.right})"
+
+class UnaryOp(ASTNode):
+    def __init__(self, op, operand):
+        self.op = op          
+        self.operand = operand  
+    def __repr__(self):
+        return f"UnaryOp('{self.op}', {self.operand})"
+
+# Node for variables
+class Var(ASTNode):
+    def __init__(self, name):
+        self.name = name    
+    def __repr__(self):
+        return f"Var('{self.name}')"
+
+# Node for assignments
+class Assign(ASTNode):
+    def __init__(self, name, value):
+        self.name = name     
+        self.value = value  
+    def __repr__(self):
+        return f"Assign(Var('{self.name}'), {self.value})"
+
+# Node for print statements
+class Print(ASTNode):
+    def __init__(self, expr):
+        self.expr = expr     
+    def __repr__(self):
+        return f"Print({self.expr})"
