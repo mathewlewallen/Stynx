@@ -1,18 +1,25 @@
-# stynx/cli.py
+import sys
+from .parser import parse_source
+from .runtime import Runtime
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python -m stynx.cli <filename.sx>")
+    if len(sys.argv) != 2:
+        print("Usage: python -m stynx.cli <source_file>")
         sys.exit(1)
-    
-    filename = sys.argv[1]
-    with open(filename, 'r') as f:
-        content = f.read()
-    lines = content.splitlines()
+    source_file = sys.argv[1]
+    try:
+        with open(source_file, 'r') as f:
+            source_code = f.read()
+    except FileNotFoundError:
+        print(f"Error: File '{source_file}' not found.")
+        sys.exit(1)
+    try:
+        ast = parse_source(source_code)
+    except Exception as e:
+        print(f"Parsing error: {e}")
+        sys.exit(1)
+    runtime = Runtime()
+    runtime.run_statements(ast)
 
-    ast_nodes = parse_source(lines)
-    rt = Runtime()
-    rt.run_statements(ast_nodes)
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

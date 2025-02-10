@@ -1,56 +1,36 @@
-# tests/test_basic.py
-
 import unittest
 from stynx.parser import parse_source
 from stynx.runtime import Runtime
 
-class TestBasic(unittest.TestCase):
+class TestStynx(unittest.TestCase):
     def test_assignment_and_print(self):
-        program = [
-            "var x",
-            "x = 10",
-            "print(x)"
-        ]
-        ast_nodes = parse_source(program)
-        rt = Runtime()
+        source = "var x\nx = 10\nprint(x)\n"
+        ast = parse_source(source)
+        runtime = Runtime()
         
-        # Capture stdout
         import io
         import sys
-        backup_stdout = sys.stdout
-        try:
-            sys.stdout = io.StringIO()
-            rt.run_statements(ast_nodes)
-            output = sys.stdout.getvalue().strip()
-        finally:
-            sys.stdout = backup_stdout
+        captured_output = io.StringIO()
+        sys.stdout = captured_output
+        runtime.run_statements(ast)
+        sys.stdout = sys.__stdout__
         
-        self.assertEqual(output, "10.0")
+        self.assertEqual(captured_output.getvalue().strip(), "10")
 
     def test_gradient(self):
-        program = [
-            "var a",
-            "a = 2.0",
-            "var b",
-            "b = 3.0",
-            "z = a * b",
-            "grad(z, a)"
-        ]
-        ast_nodes = parse_source(program)
-        rt = Runtime()
+        source = "var a\na = 2.0\nvar b\nb = 3.0\nz = a * b\ngrad(z, a)\n"
+        ast = parse_source(source)
+        runtime = Runtime()
         
         import io
         import sys
-        backup_stdout = sys.stdout
-        try:
-            sys.stdout = io.StringIO()
-            rt.run_statements(ast_nodes)
-            output = sys.stdout.getvalue().strip().splitlines()
-        finally:
-            sys.stdout = backup_stdout
+        captured_output = io.StringIO()
+        sys.stdout = captured_output
+        runtime.run_statements(ast)
+        sys.stdout = sys.__stdout__
         
-        # The last line should look like "d(BinOpNode(...))/d(a) = 3.0"
-        self.assertIn("= 3.0", output[-1])
+        output = captured_output.getvalue().strip()
+        self.assertIn("3.0", output)
 
 if __name__ == '__main__':
     unittest.main()

@@ -25,14 +25,17 @@ This is a **proof-of-concept** AI-focused DSL that demonstrates:
     python -m stynx.cli examples/gradient_test.sx
     ```
 
-Roadmap
+## Roadmap
 
+- [ ] Refine the parser and AST
+- [ ] Enhance the automatic differentiation engine
+- [ ] Add GPU/TPU integration and concurrency primitives
 - [ ] Transition Python-based runtime to LLVM/MLIR backend
 - [ ] Implement reference-counting memory model
 - [ ] Add concurrency primitives (parallel_for)
 - [ ] Expand autodiff to handle more complex neural nets
 - [ ] Export to ONNX
 
-Contributing
+## Contributing
 
 PRs and issues welcome!

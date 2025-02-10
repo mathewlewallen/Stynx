@@ -1,7 +1,7 @@
-var x
+var x: tensor(2,2)
 x = 0.5
 
-var y
+var y: tensor(2,2)
 y = 2.0
 
 z = x * y

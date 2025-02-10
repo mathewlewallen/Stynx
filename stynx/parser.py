@@ -1,127 +1,145 @@
-# stynx/parser.py
-
+from .lexer import tokenize
 from .ast_nodes import (
     VarDeclNode, TensorDeclNode, AssignNode, BinOpNode,
     PrintNode, GradNode, NumberNode, VarRefNode
 )
-from .lexer import lex_program
 
 class Parser:
     def __init__(self, tokens):
-        self.tokens = tokens  
-        self.pos = 0
-    
-    def current_token(self):
-        if self.pos < len(self.tokens):
-            return self.tokens[self.pos]
-        return (None, None, -1, -1)
-    
+        self.tokens = tokens
+        self.current = 0
+
+    def peek(self):
+        return self.tokens[self.current]
+
+    def is_at_end(self):
+        return self.peek()[0] == 'EOF'
+
     def advance(self):
-        self.pos += 1
-    
-    def match(self, token_type):
-        ttype, ttext, line, col = self.current_token()
-        if ttype == token_type:
-            self.advance()
-            return True
+        if not self.is_at_end():
+            self.current += 1
+        return self.previous()
+
+    def previous(self):
+        return self.tokens[self.current - 1]
+
+    def check(self, token_type):
+        if self.is_at_end():
+            return False
+        return self.peek()[0] == token_type
+
+    def match(self, *types):
+        for token_type in types:
+            if self.check(token_type):
+                self.advance()
+                return True
         return False
-    
-    def expect(self, token_type):
-        ttype, ttext, line, col = self.current_token()
-        if ttype == token_type:
-            self.advance()
-            return (ttype, ttext, line, col)
-        raise SyntaxError(f"Expected {token_type}, got {ttype} at line {line}, col {col}.")
-    
+
+    def consume(self, token_type, message):
+        if self.check(token_type):
+            return self.advance()
+        token = self.peek()
+        raise SyntaxError(f"{message} at line {token[2]}, col {token[3]} (found {token[0]}: '{token[1]}')")
+
     def parse_program(self):
         statements = []
-        while self.current_token()[0] is not None:
-            if self.current_token()[0] == 'NEWLINE':
-                self.advance()
-                continue
-            
+        while not self.is_at_end():
+            while self.match('NEWLINE'):
+                pass
+            if self.is_at_end():
+                break
             stmt = self.parse_statement()
             statements.append(stmt)
         return statements
-    
+
     def parse_statement(self):
-        ttype, ttext, line, col = self.current_token()
-        
-        if ttype == 'VAR':
+        if self.match('VAR'):
             return self.parse_var_decl()
-        elif ttype == 'IDENT':
-            # likely an assignment: x = expr
-            return self.parse_assignment()
-        elif ttype == 'PRINT':
+        if self.match('PRINT'):
             return self.parse_print()
-        elif ttype == 'GRAD':
+        if self.match('GRAD'):
             return self.parse_grad()
-        else:
-            raise SyntaxError(f"Unexpected token '{ttext}' of type {ttype} at line {line}, col {col}")
-    
+        return self.parse_assignment()
+
     def parse_var_decl(self):
-        self.expect('VAR')
-        ttype, var_name, line, col = self.expect('IDENT')
-        
+        token = self.consume('IDENT', "Expected variable name after 'var'")
+        var_name = token[1]
+        # Optional type annotation.
         if self.match('COLON'):
-            self.expect('TENSOR')   
-            self.expect('LPAREN') 
+            self.consume('TENSOR', "Expected 'tensor' after ':' in variable declaration")
+            self.consume('LPAREN', "Expected '(' after 'tensor'")
             dims = []
-            while not self.match('RPAREN'):
-                token_type, token_text, l, c = self.expect('NUMBER')
-                dims.append(token_text)
-                self.match('COMMA')  
+            while not self.check('RPAREN'):
+                num_token = self.consume('NUMBER', "Expected dimension number")
+                dims.append(int(num_token[1]))
+                if not self.check('RPAREN'):
+                    self.consume('COMMA', "Expected ',' between dimensions")
+            self.consume('RPAREN', "Expected ')' after dimensions")
             return TensorDeclNode(var_name, dims)
         else:
             return VarDeclNode(var_name)
-    
+
     def parse_assignment(self):
-        ttype, var_name, line, col = self.expect('IDENT')
-        self.expect('EQ')
+        token = self.consume('IDENT', "Expected variable name for assignment")
+        var_name = token[1]
+        self.consume('EQ', "Expected '=' after variable name")
         expr = self.parse_expression()
         return AssignNode(var_name, expr)
-    
-    def parse_print(self):
-        self.expect('PRINT')
-        self.expect('LPAREN')
-        expr = self.parse_expression()
-        self.expect('RPAREN')
-        return PrintNode(expr)
-    
-    def parse_grad(self):
-        self.expect('GRAD')
-        self.expect('LPAREN')
-        expr = self.parse_expression()
-        self.expect('COMMA')
-        ttype, wrt_name, line, col = self.expect('IDENT')
-        self.expect('RPAREN')
-        return GradNode(expr, wrt_name)
-    
-    def parse_expression(self):
-        left = self.parse_factor()
-        while True:
-            ttype, ttext, line, col = self.current_token()
-            if ttype in ('PLUS', 'MINUS', 'MUL'):
-                op = ttype
-                self.advance()
-                right = self.parse_factor()
-                left = BinOpNode(left, op, right)
-            else:
-                break
-        return left
-    
-    def parse_factor(self):
-        ttype, ttext, line, col = self.current_token()
-        if ttype == 'NUMBER':
-            self.advance()
-            return NumberNode(float(ttext))
-        elif ttype == 'IDENT':
-            self.advance()
-            return VarRefNode(ttext)
-        else:
-            raise SyntaxError(f"Unexpected token '{ttext}' at line {line}, col {col}")
 
-def parse_source(program_lines):
-    tokens = lex_program(program_lines)
+    def parse_print(self):
+        self.consume('LPAREN', "Expected '(' after 'print'")
+        expr = self.parse_expression()
+        self.consume('RPAREN', "Expected ')' after expression in print")
+        return PrintNode(expr)
+
+    def parse_grad(self):
+        self.consume('LPAREN', "Expected '(' after 'grad'")
+        expr = self.parse_expression()
+        self.consume('COMMA', "Expected ',' in grad expression")
+        token = self.consume('IDENT', "Expected variable name in grad expression")
+        wrt = token[1]
+        self.consume('RPAREN', "Expected ')' after grad expression")
+        return GradNode(expr, wrt)
+
+    def parse_expression(self):
+        return self.parse_term()
+
+    def parse_term(self):
+        expr = self.parse_factor()
+        while self.match('PLUS', 'MINUS'):
+            operator = self.previous()[0]
+            right = self.parse_factor()
+            expr = BinOpNode(expr, operator, right)
+        return expr
+
+    def parse_factor(self):
+        expr = self.parse_unary()
+        while self.match('MUL'):
+            operator = self.previous()[0] 
+            right = self.parse_unary()
+            expr = BinOpNode(expr, operator, right)
+        return expr
+
+    def parse_unary(self):
+        if self.match('MINUS'):
+            operator = self.previous()[0]  # 'MINUS'
+            right = self.parse_unary()
+            return BinOpNode(NumberNode(0), operator, right)
+        return self.parse_primary()
+
+    def parse_primary(self):
+        if self.match('NUMBER'):
+            return NumberNode(float(self.previous()[1]))
+        if self.match('IDENT'):
+            return VarRefNode(self.previous()[1])
+        if self.match('LPAREN'):
+            expr = self.parse_expression()
+            self.consume('RPAREN', "Expected ')' after expression")
+            return expr
+        token = self.peek()
+        raise SyntaxError(f"Unexpected token {token[0]} at line {token[2]}, col {token[3]}")
+
+def parse_source(source_code):
+    tokens = tokenize(source_code)
     parser = Parser(tokens)
     return parser.parse_program()

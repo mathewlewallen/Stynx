@@ -1,4 +1,12 @@
-# pyproject.toml
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "stynx"
+version = "0.0.1"
+description = "An experimental AI-focused DSL."
+authors = [
+  { name = "Mathew Le Wallen", email = "mathewlewallen@yahoo.com" }
+]
+dependencies = []
