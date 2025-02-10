@@ -1,0 +1,11 @@
+var a
+a = 2.0
+
+var b
+b = 3.0
+
+z = a * b
+
+print(z)
+
+grad(z, a)

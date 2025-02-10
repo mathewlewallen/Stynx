@@ -1,0 +1,8 @@
+var x
+x = 0.5
+
+var y
+y = 2.0
+
+z = x * y
+print(z)
