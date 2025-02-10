@@ -1,5 +1,5 @@
 from lark import Transformer, v_args
-from ast_nodes import Number, BinOp, UnaryOp, Var, Assign, Print
+from stynx.ast_nodes import Number, BinOp, UnaryOp, Var, Assign, Print
 
 @v_args(inline=True)
 class ASTTransformer(Transformer):

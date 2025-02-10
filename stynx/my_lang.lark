@@ -1,8 +1,8 @@
-?start: statement+              
+?start: statement+
 
-?statement: assignment         
-          | print_stmt        
-          | expr               
+?statement: assignment
+          | print_stmt
+          | expr
 
 assignment: NAME "=" expr       -> assign
 
